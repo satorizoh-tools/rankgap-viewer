@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>321ランキングツール</title>
+
+<style>
+body{
+font-family: Arial, sans-serif;
+background:#f5f5f5;
+padding:40px;
+}
+
+.card{
+background:white;
+padding:24px;
+border-radius:12px;
+width:360px;
+box-shadow:0 4px 12px rgba(0,0,0,0.1);
+}
+
+h2{
+margin-top:0;
+}
+
+.value{
+font-size:22px;
+font-weight:bold;
+margin-bottom:10px;
+}
+
+button{
+margin-top:10px;
+margin-right:10px;
+padding:8px 14px;
+font-size:14px;
+cursor:pointer;
+}
+
+textarea{
+width:100%;
+height:140px;
+margin-top:10px;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="card">
+
+<h2>ゆいか氏ランキング</h2>
+
+<div>順位</div>
+<div id="rank" class="value">--</div>
+
+<div>ポイント</div>
+<div id="points" class="value">--</div>
+
+<div>15位まで</div>
+<div id="diff15" class="value">--</div>
+
+<div>30位まで</div>
+<div id="diff30" class="value">--</div>
+
+<div>最終更新</div>
+<div id="time">--</div>
+
+<button onclick="updateRank()">今すぐ更新</button>
+<button onclick="copyComment()">コメントコピー</button>
+
+<textarea id="comment"></textarea>
+
+</div>
+
+<script>
+
+const targetUserId="2576568"
+const battleId="akaaokimidoribattle2026"
+const groupId="3027d16b"
+
+async function updateRank(){
+
+const res=await fetch(`https://ranking.321.inc/api/battle-live?battleId=${battleId}`)
+const data=await res.json()
+
+const list=data.groups[groupId]
+
+const sorted=[...list].sort((a,b)=>b.rawValue-a.rawValue)
+
+const index=sorted.findIndex(v=>String(v.userId)===targetUserId)
+
+const rank=index+1
+const points=sorted[index].rawValue
+
+const diff15=Math.max(sorted[14].rawValue-points,0)
+const diff30=Math.max(sorted[29].rawValue-points,0)
+
+document.getElementById("rank").textContent=rank+"位"
+document.getElementById("points").textContent=points.toLocaleString()+"pt"
+document.getElementById("diff15").textContent=diff15.toLocaleString()+"pt"
+document.getElementById("diff30").textContent=diff30.toLocaleString()+"pt"
+
+const now=new Date().toLocaleTimeString()
+document.getElementById("time").textContent=now
+
+const comment=
+`📣配信用コメント
+
+ゆいか氏 現在 ${rank}位
+ポイント ${points.toLocaleString()}pt
+
+15位まであと ${diff15.toLocaleString()}pt
+30位まであと ${diff30.toLocaleString()}pt`
+
+document.getElementById("comment").value=comment
+
+}
+
+function copyComment(){
+
+const text=document.getElementById("comment").value
+navigator.clipboard.writeText(text)
+
+}
+
+setInterval(updateRank,10000)
+
+updateRank()
+
+</script>
+
+</body>
+</html>
