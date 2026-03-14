@@ -2,44 +2,46 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>321ランキングツール</title>
+<title>赤組RankGap Viewer</title>
 
 <style>
+
 body{
-  font-family: Arial, sans-serif;
-  background:#f5f5f5;
-  padding:40px;
+font-family: Arial, sans-serif;
+background:#f5f5f5;
+padding:40px;
 }
 
 .card{
-  background:white;
-  padding:24px;
-  border-radius:12px;
-  width:360px;
-  box-shadow:0 4px 12px rgba(0,0,0,0.1);
+background:white;
+padding:24px;
+border-radius:12px;
+width:360px;
+box-shadow:0 4px 12px rgba(0,0,0,0.1);
 }
 
 h2{
-  margin-top:0;
+margin-top:0;
 }
 
 .value{
-  font-size:22px;
-  font-weight:bold;
-  margin-bottom:10px;
+font-size:22px;
+font-weight:bold;
+margin-bottom:10px;
 }
 
 button{
-  margin-top:10px;
-  margin-right:10px;
-  padding:8px 14px;
+margin-top:10px;
+margin-right:10px;
+padding:8px 14px;
 }
 
 textarea{
-  width:100%;
-  height:120px;
-  margin-top:10px;
+width:100%;
+height:120px;
+margin-top:10px;
 }
+
 </style>
 </head>
 
@@ -55,11 +57,11 @@ textarea{
 <div>ポイント</div>
 <div id="points" class="value">--</div>
 
+<div>10位まで</div>
+<div id="diff10" class="value">--</div>
+
 <div>15位まで</div>
 <div id="diff15" class="value">--</div>
-
-<div>30位まで</div>
-<div id="diff30" class="value">--</div>
 
 <div>最終更新</div>
 <div id="time" class="value">--</div>
@@ -79,49 +81,49 @@ const groupId = "3027d16b"
 
 async function updateRank(){
 
-  const res = await fetch(`https://dark-union-69d8.rankgap-tools.workers.dev/?battleId=${battleId}`)
-  const data = await res.json()
+const res = await fetch(`https://dark-union-69d8.rankgap-tools.workers.dev/?battleId=${battleId}`)
+const data = await res.json()
 
-  const list = data.groups[groupId]
+const list = data.groups[groupId]
 
-  if(!list || list.length === 0){
-    return
-  }
+if(!list || list.length===0){
+return
+}
 
-  const sorted = [...list].sort((a,b)=>a.rank-b.rank)
+const sorted=[...list].sort((a,b)=>a.rank-b.rank)
 
-  const index = sorted.findIndex(v=>String(v.userId)===targetUserId)
+const index=sorted.findIndex(v=>String(v.userId)===targetUserId)
 
-  if(index===-1){
-    return
-  }
+if(index===-1){
+return
+}
 
-  const rank = sorted[index].rank
-  const points = sorted[index].score
+const rank=sorted[index].rank
+const points=sorted[index].score
 
-  const diff15 = sorted[14] ? Math.max(sorted[14].score - points,0) : 0
-  const diff30 = sorted[29] ? Math.max(sorted[29].score - points,0) : 0
+const diff10=sorted[9]?Math.max(sorted[9].score-points,0):0
+const diff15=sorted[14]?Math.max(sorted[14].score-points,0):0
 
-  document.getElementById("rank").textContent = rank+"位"
-  document.getElementById("points").textContent = points.toLocaleString()+"pt"
-  document.getElementById("diff15").textContent = diff15.toLocaleString()+"pt"
-  document.getElementById("diff30").textContent = diff30.toLocaleString()+"pt"
+document.getElementById("rank").textContent=rank+"位"
+document.getElementById("points").textContent=points.toLocaleString()+"pt"
+document.getElementById("diff10").textContent=diff10.toLocaleString()+"pt"
+document.getElementById("diff15").textContent=diff15.toLocaleString()+"pt"
 
-  const now = new Date().toLocaleTimeString()
-  document.getElementById("time").textContent = now
+const now=new Date().toLocaleTimeString()
+document.getElementById("time").textContent=now
 
-  document.getElementById("comment").value =
+document.getElementById("comment").value=
 `現在${rank}位
 ポイント ${points.toLocaleString()}pt
+10位まで ${diff10.toLocaleString()}pt
 15位まで ${diff15.toLocaleString()}pt
-30位まで ${diff30.toLocaleString()}pt
 最終更新 ${now}`
 
 }
 
 function copyComment(){
-  const text = document.getElementById("comment").value
-  navigator.clipboard.writeText(text)
+const text=document.getElementById("comment").value
+navigator.clipboard.writeText(text)
 }
 
 document.getElementById("copyBtn").addEventListener("click",copyComment)
