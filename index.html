@@ -34,12 +34,17 @@ textarea{
   height:120px;
   margin-top:10px;
 }
+.error{
+  color:#b00020;
+  margin-top:10px;
+  white-space:pre-wrap;
+}
 </style>
 </head>
 <body>
 
 <div class="card">
-  <h2>ゆいか氏ランキング</h2>
+  <h2 id="title">ランキング</h2>
 
   <div>順位</div>
   <div id="rank" class="value">--</div>
@@ -56,19 +61,20 @@ textarea{
   <div>最終更新</div>
   <div id="time" class="value">--</div>
 
-  <button onclick="updateRank()">今すぐ更新</button>
-  <button onclick="copyComment()">コメントコピー</button>
+  <button id="refreshBtn" onclick="updateRank()">今すぐ更新</button>
+  <button id="copyBtn" onclick="copyComment()">コメントコピー</button>
 
   <textarea id="comment"></textarea>
+  <div id="error" class="error"></div>
 </div>
 
 <script>
 const EVENTS_API_URL = "https://script.google.com/macros/s/AKfycbzX0gqLJ78tp3tOO3BLG9vzKnJu6QZ-DoIN8Sf7arHpmlyE0LWq4Ro3hC7iaMmGHASM/exec";
-
+const WORKER_URL = "https://dark-union-69d8.rankgap-tools.workers.dev/";
 const targetUserId = "2576568";
-const groupId = "3027d16b";
 
 let battleId = "";
+let groupId = "";
 let eventName = "";
 
 async function loadEvent() {
@@ -80,53 +86,76 @@ async function loadEvent() {
   }
 
   const event = data.events[0];
-  battleId = event.eventId;
+  battleId = event.battleId;
+  groupId = event.groupId;
   eventName = event.eventName || "イベント";
+
+  document.getElementById("title").textContent = "ゆいか氏ランキング";
 }
 
 async function updateRank() {
-  if (!battleId) {
-    await loadEvent();
-  }
+  clearError();
 
-const res = await fetch(`https://dark-union-69d8.rankgap-tools.workers.dev/?battleId=${battleId}`)
-  const data = await res.json();
+  try {
+    if (!battleId || !groupId) {
+      await loadEvent();
+    }
 
-  const list = data.groups[groupId];
-  const sorted = [...list].sort((a, b) => b.rawValue - a.rawValue);
+    const res = await fetch(`${WORKER_URL}?battleId=${battleId}`);
+    const data = await res.json();
 
-  const index = sorted.findIndex(v => String(v.userId) === targetUserId);
-  if (index === -1) {
-    throw new Error("target user not found");
-  }
+    if (!data.groups || !data.groups[groupId]) {
+      throw new Error("group not found");
+    }
 
-  const rank = index + 1;
-  const points = sorted[index].rawValue;
+    const list = data.groups[groupId];
+    const sorted = [...list].sort((a, b) => b.score - a.score);
 
-  const diff15 = sorted[14] ? Math.max(sorted[14].rawValue - points, 0) : 0;
-  const diff30 = sorted[29] ? Math.max(sorted[29].rawValue - points, 0) : 0;
+    const index = sorted.findIndex(v => String(v.userId) === targetUserId);
+    if (index === -1) {
+      throw new Error("target user not found");
+    }
 
-  document.getElementById("rank").textContent = rank + "位";
-  document.getElementById("points").textContent = points.toLocaleString() + "pt";
-  document.getElementById("diff15").textContent = diff15.toLocaleString() + "pt";
-  document.getElementById("diff30").textContent = diff30.toLocaleString() + "pt";
+    const rank = index + 1;
+    const points = sorted[index].score;
 
-  const now = new Date().toLocaleTimeString();
-  document.getElementById("time").textContent = now;
+    const diff15 = sorted[14] ? Math.max(sorted[14].score - points, 0) : 0;
+    const diff30 = sorted[29] ? Math.max(sorted[29].score - points, 0) : 0;
 
-  document.getElementById("comment").value =
+    document.getElementById("rank").textContent = rank + "位";
+    document.getElementById("points").textContent = points.toLocaleString() + "pt";
+    document.getElementById("diff15").textContent = diff15.toLocaleString() + "pt";
+    document.getElementById("diff30").textContent = diff30.toLocaleString() + "pt";
+
+    const now = new Date().toLocaleTimeString();
+    document.getElementById("time").textContent = now;
+
+    document.getElementById("comment").value =
 `${eventName}
 ゆいか氏 現在 ${rank}位
 ポイント ${points.toLocaleString()}pt
 15位まで ${diff15.toLocaleString()}pt
 30位まで ${diff30.toLocaleString()}pt
 最終更新 ${now}`;
+  } catch (err) {
+    showError(err.message || String(err));
+  }
 }
 
 function copyComment() {
   const text = document.getElementById("comment").value;
   navigator.clipboard.writeText(text);
 }
+
+function showError(message) {
+  document.getElementById("error").textContent = message;
+}
+
+function clearError() {
+  document.getElementById("error").textContent = "";
+}
+
+updateRank();
 </script>
 
 </body>
