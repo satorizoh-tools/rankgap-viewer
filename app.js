@@ -39,9 +39,7 @@
   function loadSettings() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) {
-        return;
-      }
+      if (!raw) return;
 
       const parsed = JSON.parse(raw);
       if (typeof parsed.autoEnabled === "boolean") {
@@ -69,11 +67,12 @@
     el.points = document.getElementById("points");
     el.diff15 = document.getElementById("diff15");
     el.diff30 = document.getElementById("diff30");
-    el.time = document.getElementById("time");
-    el.status = document.getElementById("status");
+    el.stateLine = document.getElementById("stateLine");
+    el.lastUpdateLine = document.getElementById("lastUpdateLine");
     el.comment = document.getElementById("comment");
     el.error = document.getElementById("error");
     el.refreshBtn = document.getElementById("refreshBtn");
+    el.refreshBtnLabel = el.refreshBtn.querySelector(".btn-label");
     el.copyBtn = document.getElementById("copyBtn");
     el.autoEnabled = document.getElementById("autoEnabled");
     el.autoIntervalSec = document.getElementById("autoIntervalSec");
@@ -104,7 +103,12 @@
   }
 
   function buildCommentText(eventName, rankData, lastUpdateText) {
-    return `${eventName}\nゆいか氏 現在 ${rankData.rank}位\nポイント ${rankData.points.toLocaleString()}pt\n15位まで ${rankData.diff15.toLocaleString()}pt\n30位まで ${rankData.diff30.toLocaleString()}pt\n最終更新 ${lastUpdateText}`;
+    return `${eventName}
+ゆいか氏 現在 ${rankData.rank}位
+ポイント ${rankData.points.toLocaleString()}pt
+15位まで ${rankData.diff15.toLocaleString()}pt
+30位まで ${rankData.diff30.toLocaleString()}pt
+最終更新 ${lastUpdateText}`;
   }
 
   async function refreshRanking(reason) {
@@ -120,40 +124,69 @@
     el.diff30.textContent = `${rankData.diff30.toLocaleString()}pt`;
 
     const completedAtText = formatDateTimeJst(Date.now());
-    el.time.textContent = completedAtText;
     el.comment.value = buildCommentText(event.eventName || "イベント", rankData, completedAtText);
 
     return { reason, rankData };
   }
 
-  function updateStatusView(snapshot) {
-    const parts = [];
+  function updateRefreshButton(snapshot) {
+    const isCooldown = snapshot.manualCooldownRemainingMs > 0 && !snapshot.isUpdating;
+    const cooldownProgress = isCooldown
+      ? Math.max(0, Math.min(100, ((10000 - snapshot.manualCooldownRemainingMs) / 10000) * 100))
+      : 0;
 
-    if (snapshot.lastCompletedAtMs) {
-      const timeText = formatDateTimeJst(snapshot.lastCompletedAtMs);
-      const durationText = snapshot.lastDurationMs != null
-        ? ` (${formatDurationSec(snapshot.lastDurationMs)})`
-        : "";
-      const autoText = snapshot.autoEnabled
-        ? `Auto ${snapshot.intervalSec}s ◔`
-        : "Auto OFF";
-      parts.push(`Last Update: ${timeText}${durationText} · ${autoText}`);
-    } else {
-      parts.push("Last Update: --");
-    }
+    el.refreshBtn.classList.toggle("is-updating", snapshot.isUpdating);
+    el.refreshBtn.classList.toggle("is-cooldown", isCooldown);
+    el.refreshBtn.style.setProperty("--progress", `${cooldownProgress}%`);
 
     if (snapshot.isUpdating) {
-      parts.push("更新中");
-    } else if (snapshot.manualCooldownRemainingMs > 0) {
-      const sec = Math.ceil(snapshot.manualCooldownRemainingMs / 1000);
-      parts.push(`Manual Cooldown: ${sec}s`);
+      el.refreshBtnLabel.textContent = "更新中…";
+    } else if (isCooldown) {
+      el.refreshBtnLabel.textContent = "";
     } else {
-      parts.push("待機中");
+      el.refreshBtnLabel.textContent = "今すぐ更新";
     }
 
-    el.status.textContent = parts.join("\n");
+    el.refreshBtn.disabled = snapshot.isUpdating || isCooldown;
+  }
 
-    el.refreshBtn.disabled = snapshot.isUpdating || snapshot.manualCooldownRemainingMs > 0;
+  function updateStateLine(snapshot) {
+    if (snapshot.isUpdating) {
+      el.stateLine.textContent = "Updating";
+      return;
+    }
+
+    if (snapshot.manualCooldownRemainingMs > 0) {
+      const sec = Math.ceil(snapshot.manualCooldownRemainingMs / 1000);
+      el.stateLine.textContent = `Manual Cooldown ${sec}s`;
+      return;
+    }
+
+    el.stateLine.textContent = "Waiting";
+  }
+
+  function updateLastUpdateLine(snapshot) {
+    if (!snapshot.lastCompletedAtMs) {
+      el.lastUpdateLine.textContent = "Last Update: --";
+      return;
+    }
+
+    const timeText = formatDateTimeJst(snapshot.lastCompletedAtMs);
+    const durationText = snapshot.lastDurationMs != null
+      ? ` (${formatDurationSec(snapshot.lastDurationMs)})`
+      : "";
+    const autoText = snapshot.autoEnabled
+      ? `Auto ${snapshot.intervalSec}s`
+      : "Auto OFF";
+
+    el.lastUpdateLine.textContent = `Last Update: ${timeText}${durationText} · ${autoText}`;
+  }
+
+  function updateStatusView(snapshot) {
+    updateStateLine(snapshot);
+    updateLastUpdateLine(snapshot);
+    updateRefreshButton(snapshot);
+
     el.autoIntervalSec.disabled = snapshot.isUpdating;
     el.autoEnabled.disabled = snapshot.isUpdating;
   }
