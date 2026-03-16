@@ -2,42 +2,80 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RankGap Viewer</title>
 <style>
-body{
+body {
   font-family: Arial, sans-serif;
-  background:#f5f5f5;
-  padding:40px;
+  background: #f5f5f5;
+  padding: 40px;
+  color: #222;
 }
-.card{
-  background:white;
-  padding:24px;
-  border-radius:12px;
-  width:360px;
-  box-shadow:0 4px 12px rgba(0,0,0,0.1);
+.card {
+  background: #ffffff;
+  padding: 24px;
+  border-radius: 12px;
+  width: 380px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
-h2{
-  margin-top:0;
+h2 {
+  margin-top: 0;
+  margin-bottom: 16px;
 }
-.value{
-  font-size:22px;
-  font-weight:bold;
-  margin-bottom:10px;
+.label {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 4px;
 }
-button{
-  margin-top:10px;
-  margin-right:10px;
-  padding:8px 14px;
+.value {
+  font-size: 22px;
+  font-weight: bold;
+  margin-bottom: 12px;
 }
-textarea{
-  width:100%;
-  height:120px;
-  margin-top:10px;
+.controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+  margin-bottom: 14px;
 }
-.error{
-  color:#b00020;
-  margin-top:10px;
-  white-space:pre-wrap;
+button {
+  padding: 8px 14px;
+  cursor: pointer;
+}
+button:disabled,
+input:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+input[type="number"] {
+  width: 90px;
+  padding: 6px 8px;
+}
+.status {
+  margin-top: 10px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #333;
+  white-space: pre-wrap;
+}
+textarea {
+  width: 100%;
+  height: 140px;
+  margin-top: 10px;
+  box-sizing: border-box;
+}
+.error {
+  color: #b00020;
+  margin-top: 10px;
+  white-space: pre-wrap;
+}
+.notice {
+  font-size: 12px;
+  color: #666;
+  margin-top: 10px;
+  line-height: 1.5;
 }
 </style>
 </head>
@@ -46,117 +84,52 @@ textarea{
 <div class="card">
   <h2 id="title">ランキング</h2>
 
-  <div>順位</div>
+  <div class="label">順位</div>
   <div id="rank" class="value">--</div>
 
-  <div>ポイント</div>
+  <div class="label">ポイント</div>
   <div id="points" class="value">--</div>
 
-  <div>15位まで</div>
+  <div class="label">15位まで</div>
   <div id="diff15" class="value">--</div>
 
-  <div>30位まで</div>
+  <div class="label">30位まで</div>
   <div id="diff30" class="value">--</div>
 
-  <div>最終更新</div>
+  <div class="label">最終更新</div>
   <div id="time" class="value">--</div>
 
-  <button id="refreshBtn" onclick="updateRank()">今すぐ更新</button>
-  <button id="copyBtn" onclick="copyComment()">コメントコピー</button>
+  <div class="controls">
+    <label>
+      <input id="autoEnabled" type="checkbox" checked>
+      Auto更新
+    </label>
+
+    <label>
+      間隔
+      <input id="autoIntervalSec" type="number" min="10" max="600" step="1" value="30">
+      秒
+    </label>
+  </div>
+
+  <div class="controls">
+    <button id="refreshBtn" type="button">今すぐ更新</button>
+    <button id="copyBtn" type="button">コメントコピー</button>
+  </div>
+
+  <div id="status" class="status">Status: 初期化前</div>
 
   <textarea id="comment"></textarea>
   <div id="error" class="error"></div>
+
+  <div class="notice">
+    この版は実装②の土台です。<br>
+    4ファイル構成への分割と、更新完了基準タイマー、Manual更新後のAutoリセットまで入れています。
+  </div>
 </div>
 
-<script>
-const EVENTS_API_URL = "https://script.google.com/macros/s/AKfycbzX0gqLJ78tp3tOO3BLG9vzKnJu6QZ-DoIN8Sf7arHpmlyE0LWq4Ro3hC7iaMmGHASM/exec";
-const WORKER_URL = "https://dark-union-69d8.rankgap-tools.workers.dev/";
-const targetUserId = "2576568";
-
-let battleId = "";
-let groupId = "";
-let eventName = "";
-
-async function loadEvent() {
-  const res = await fetch(EVENTS_API_URL);
-  const data = await res.json();
-
-  if (!data.events || data.events.length === 0) {
-    throw new Error("events not found");
-  }
-
-  const event = data.events[0];
-  battleId = event.battleId;
-  groupId = event.groupId;
-  eventName = event.eventName || "イベント";
-
-  document.getElementById("title").textContent = "ゆいか氏ランキング";
-}
-
-async function updateRank() {
-  clearError();
-
-  try {
-    if (!battleId || !groupId) {
-      await loadEvent();
-    }
-
-    const res = await fetch(`${WORKER_URL}?battleId=${battleId}`);
-    const data = await res.json();
-
-    if (!data.groups || !data.groups[groupId]) {
-      throw new Error("group not found");
-    }
-
-    const list = data.groups[groupId];
-    const sorted = [...list].sort((a, b) => b.score - a.score);
-
-    const index = sorted.findIndex(v => String(v.userId) === targetUserId);
-    if (index === -1) {
-      throw new Error("target user not found");
-    }
-
-    const rank = index + 1;
-    const points = sorted[index].score;
-
-    const diff15 = sorted[14] ? Math.max(sorted[14].score - points, 0) : 0;
-    const diff30 = sorted[29] ? Math.max(sorted[29].score - points, 0) : 0;
-
-    document.getElementById("rank").textContent = rank + "位";
-    document.getElementById("points").textContent = points.toLocaleString() + "pt";
-    document.getElementById("diff15").textContent = diff15.toLocaleString() + "pt";
-    document.getElementById("diff30").textContent = diff30.toLocaleString() + "pt";
-
-    const now = new Date().toLocaleTimeString();
-    document.getElementById("time").textContent = now;
-
-    document.getElementById("comment").value =
-`${eventName}
-ゆいか氏 現在 ${rank}位
-ポイント ${points.toLocaleString()}pt
-15位まで ${diff15.toLocaleString()}pt
-30位まで ${diff30.toLocaleString()}pt
-最終更新 ${now}`;
-  } catch (err) {
-    showError(err.message || String(err));
-  }
-}
-
-function copyComment() {
-  const text = document.getElementById("comment").value;
-  navigator.clipboard.writeText(text);
-}
-
-function showError(message) {
-  document.getElementById("error").textContent = message;
-}
-
-function clearError() {
-  document.getElementById("error").textContent = "";
-}
-
-updateRank();
-</script>
-
+<script src="./api.js"></script>
+<script src="./timeLogic.js"></script>
+<script src="./app.js"></script>
 </body>
 </html>
