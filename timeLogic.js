@@ -1,5 +1,6 @@
 (function () {
   const MANUAL_COOLDOWN_MS = 10 * 1000;
+  const TICK_MS = 250;
 
   class RankGapTimeLogic {
     constructor(options) {
@@ -9,7 +10,7 @@
       this.getUserIntervalSec = options.getUserIntervalSec;
 
       this.autoTimerId = null;
-      this.manualCooldownTimerId = null;
+      this.manualCooldownIntervalId = null;
       this.manualCooldownUntil = null;
       this.isUpdating = false;
       this.lastCompletedAtMs = null;
@@ -50,9 +51,9 @@
     }
 
     clearManualCooldownTimer() {
-      if (this.manualCooldownTimerId) {
-        clearTimeout(this.manualCooldownTimerId);
-        this.manualCooldownTimerId = null;
+      if (this.manualCooldownIntervalId) {
+        clearInterval(this.manualCooldownIntervalId);
+        this.manualCooldownIntervalId = null;
       }
     }
 
@@ -63,11 +64,15 @@
     startManualCooldown() {
       this.clearManualCooldownTimer();
       this.manualCooldownUntil = Date.now() + MANUAL_COOLDOWN_MS;
-      this.manualCooldownTimerId = setTimeout(() => {
-        this.manualCooldownUntil = null;
-        this.manualCooldownTimerId = null;
+      this.notifyState();
+
+      this.manualCooldownIntervalId = setInterval(() => {
+        if (!this.isManualCooldownActive()) {
+          this.manualCooldownUntil = null;
+          this.clearManualCooldownTimer();
+        }
         this.notifyState();
-      }, MANUAL_COOLDOWN_MS);
+      }, TICK_MS);
     }
 
     scheduleNextAutoFromCompletion() {
