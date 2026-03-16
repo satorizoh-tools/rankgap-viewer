@@ -1,0 +1,61 @@
+(function () {
+  const EVENTS_API_URL = "https://script.google.com/macros/s/AKfycbzX0gqLJ78tp3tOO3BLG9vzKnJu6QZ-DoIN8Sf7arHpmlyE0LWq4Ro3hC7iaMmGHASM/exec";
+  const WORKER_URL = "https://dark-union-69d8.rankgap-tools.workers.dev/";
+  const TARGET_USER_ID = "2576568";
+
+  async function fetchEvents() {
+    const res = await fetch(EVENTS_API_URL, { cache: "no-store" });
+    if (!res.ok) {
+      throw new Error(`events api error: ${res.status}`);
+    }
+
+    const data = await res.json();
+    if (!data.events || !Array.isArray(data.events) || data.events.length === 0) {
+      throw new Error("events not found");
+    }
+
+    return data.events;
+  }
+
+  async function fetchBattleGroup(battleId, groupId) {
+    const url = `${WORKER_URL}?battleId=${encodeURIComponent(battleId)}`;
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) {
+      throw new Error(`worker api error: ${res.status}`);
+    }
+
+    const data = await res.json();
+    if (!data.groups || !data.groups[groupId]) {
+      throw new Error("group not found");
+    }
+
+    return data.groups[groupId];
+  }
+
+  function buildRankViewModel(list) {
+    const sorted = [...list].sort((a, b) => b.score - a.score);
+    const index = sorted.findIndex(v => String(v.userId) === TARGET_USER_ID);
+
+    if (index === -1) {
+      throw new Error("target user not found");
+    }
+
+    const rank = index + 1;
+    const points = Number(sorted[index].score || 0);
+    const diff15 = sorted[14] ? Math.max(Number(sorted[14].score || 0) - points, 0) : 0;
+    const diff30 = sorted[29] ? Math.max(Number(sorted[29].score || 0) - points, 0) : 0;
+
+    return {
+      rank,
+      points,
+      diff15,
+      diff30
+    };
+  }
+
+  window.RankGapApi = {
+    fetchEvents,
+    fetchBattleGroup,
+    buildRankViewModel
+  };
+})();

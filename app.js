@@ -1,0 +1,217 @@
+(function () {
+  const STORAGE_KEY = "rankgap-viewer-settings";
+
+  const state = {
+    event: null,
+    autoEnabled: true,
+    autoIntervalSec: 30,
+    timeLogic: null
+  };
+
+  const el = {};
+
+  function getEnabledEvent(events) {
+    const enabled = events.find(event => event.isEnabled);
+    return enabled || events[0] || null;
+  }
+
+  function pad2(value) {
+    return String(value).padStart(2, "0");
+  }
+
+  function formatDateTimeJst(timestampMs) {
+    const dt = new Date(timestampMs);
+    return [
+      pad2(dt.getFullYear() % 100),
+      pad2(dt.getMonth() + 1),
+      pad2(dt.getDate())
+    ].join("/") + " " + [
+      pad2(dt.getHours()),
+      pad2(dt.getMinutes()),
+      pad2(dt.getSeconds())
+    ].join(":");
+  }
+
+  function formatDurationSec(durationMs) {
+    return `${(durationMs / 1000).toFixed(1)}s`;
+  }
+
+  function loadSettings() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        return;
+      }
+
+      const parsed = JSON.parse(raw);
+      if (typeof parsed.autoEnabled === "boolean") {
+        state.autoEnabled = parsed.autoEnabled;
+      }
+      if (Number.isFinite(parsed.autoIntervalSec)) {
+        state.autoIntervalSec = Math.max(10, Math.min(600, Number(parsed.autoIntervalSec)));
+      }
+    } catch (error) {
+      console.warn("settings load failed", error);
+    }
+  }
+
+  function saveSettings() {
+    const payload = {
+      autoEnabled: state.autoEnabled,
+      autoIntervalSec: state.autoIntervalSec
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  }
+
+  function cacheElements() {
+    el.title = document.getElementById("title");
+    el.rank = document.getElementById("rank");
+    el.points = document.getElementById("points");
+    el.diff15 = document.getElementById("diff15");
+    el.diff30 = document.getElementById("diff30");
+    el.time = document.getElementById("time");
+    el.status = document.getElementById("status");
+    el.comment = document.getElementById("comment");
+    el.error = document.getElementById("error");
+    el.refreshBtn = document.getElementById("refreshBtn");
+    el.copyBtn = document.getElementById("copyBtn");
+    el.autoEnabled = document.getElementById("autoEnabled");
+    el.autoIntervalSec = document.getElementById("autoIntervalSec");
+  }
+
+  function showError(message) {
+    el.error.textContent = message;
+  }
+
+  function clearError() {
+    el.error.textContent = "";
+  }
+
+  async function ensureEventLoaded() {
+    if (state.event) {
+      return state.event;
+    }
+
+    const events = await window.RankGapApi.fetchEvents();
+    const event = getEnabledEvent(events);
+    if (!event) {
+      throw new Error("enabled event not found");
+    }
+
+    state.event = event;
+    el.title.textContent = `${event.eventName || "イベント"} | ゆいか氏ランキング`;
+    return event;
+  }
+
+  function buildCommentText(eventName, rankData, lastUpdateText) {
+    return `${eventName}\nゆいか氏 現在 ${rankData.rank}位\nポイント ${rankData.points.toLocaleString()}pt\n15位まで ${rankData.diff15.toLocaleString()}pt\n30位まで ${rankData.diff30.toLocaleString()}pt\n最終更新 ${lastUpdateText}`;
+  }
+
+  async function refreshRanking(reason) {
+    clearError();
+
+    const event = await ensureEventLoaded();
+    const group = await window.RankGapApi.fetchBattleGroup(event.battleId, event.groupId);
+    const rankData = window.RankGapApi.buildRankViewModel(group);
+
+    el.rank.textContent = `${rankData.rank}位`;
+    el.points.textContent = `${rankData.points.toLocaleString()}pt`;
+    el.diff15.textContent = `${rankData.diff15.toLocaleString()}pt`;
+    el.diff30.textContent = `${rankData.diff30.toLocaleString()}pt`;
+
+    const completedAtText = formatDateTimeJst(Date.now());
+    el.time.textContent = completedAtText;
+    el.comment.value = buildCommentText(event.eventName || "イベント", rankData, completedAtText);
+
+    return { reason, rankData };
+  }
+
+  function updateStatusView(snapshot) {
+    const parts = [];
+
+    if (snapshot.lastCompletedAtMs) {
+      const timeText = formatDateTimeJst(snapshot.lastCompletedAtMs);
+      const durationText = snapshot.lastDurationMs != null
+        ? ` (${formatDurationSec(snapshot.lastDurationMs)})`
+        : "";
+      const autoText = snapshot.autoEnabled
+        ? `Auto ${snapshot.intervalSec}s ◔`
+        : "Auto OFF";
+      parts.push(`Last Update: ${timeText}${durationText} · ${autoText}`);
+    } else {
+      parts.push("Last Update: --");
+    }
+
+    if (snapshot.isUpdating) {
+      parts.push("更新中");
+    } else if (snapshot.manualCooldownRemainingMs > 0) {
+      const sec = Math.ceil(snapshot.manualCooldownRemainingMs / 1000);
+      parts.push(`Manual Cooldown: ${sec}s`);
+    } else {
+      parts.push("待機中");
+    }
+
+    el.status.textContent = parts.join("\n");
+
+    el.refreshBtn.disabled = snapshot.isUpdating || snapshot.manualCooldownRemainingMs > 0;
+    el.autoIntervalSec.disabled = snapshot.isUpdating;
+    el.autoEnabled.disabled = snapshot.isUpdating;
+  }
+
+  function bindEvents() {
+    el.refreshBtn.addEventListener("click", async () => {
+      const result = await state.timeLogic.runRefresh("manual");
+      if (result && result.skipped && result.reason === "manual-cooldown") {
+        showError("Manual更新は10秒クールダウン中です。");
+      }
+    });
+
+    el.copyBtn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(el.comment.value);
+      } catch (error) {
+        showError("コメントコピーに失敗しました。");
+      }
+    });
+
+    el.autoEnabled.addEventListener("change", () => {
+      state.autoEnabled = el.autoEnabled.checked;
+      saveSettings();
+      state.timeLogic.updateAutoSettingChanged();
+    });
+
+    el.autoIntervalSec.addEventListener("change", () => {
+      const value = Number(el.autoIntervalSec.value || 30);
+      state.autoIntervalSec = Math.max(10, Math.min(600, value));
+      el.autoIntervalSec.value = String(state.autoIntervalSec);
+      saveSettings();
+      state.timeLogic.updateAutoSettingChanged();
+    });
+  }
+
+  async function initialize() {
+    loadSettings();
+    cacheElements();
+
+    el.autoEnabled.checked = state.autoEnabled;
+    el.autoIntervalSec.value = String(state.autoIntervalSec);
+
+    state.timeLogic = new window.RankGapTimeLogic({
+      onAutoRefresh: refreshRanking,
+      onStateChange: updateStatusView,
+      getAutoEnabled: () => state.autoEnabled,
+      getUserIntervalSec: () => state.autoIntervalSec
+    });
+
+    bindEvents();
+
+    try {
+      await state.timeLogic.initialize();
+    } catch (error) {
+      showError(error.message || String(error));
+      updateStatusView(state.timeLogic.getSnapshot());
+    }
+  }
+
+  window.addEventListener("load", initialize);
+})();
