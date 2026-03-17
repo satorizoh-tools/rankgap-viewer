@@ -1,11 +1,13 @@
 (function () {
   const STORAGE_KEY = "rankgap-viewer-settings";
+  const COPY_BUTTON_RESET_MS = 1000;
 
   const state = {
     event: null,
     autoEnabled: true,
     autoIntervalSec: 30,
-    timeLogic: null
+    timeLogic: null,
+    copyButtonResetTimerId: null
   };
 
   const el = {};
@@ -69,7 +71,9 @@
     el.diff30 = document.getElementById("diff30");
     el.stateLine = document.getElementById("stateLine");
     el.lastUpdateLine = document.getElementById("lastUpdateLine");
+    el.commentWrap = document.getElementById("commentWrap");
     el.comment = document.getElementById("comment");
+    el.commentCloseBtn = document.getElementById("commentCloseBtn");
     el.error = document.getElementById("error");
     el.refreshBtn = document.getElementById("refreshBtn");
     el.refreshBtnLabel = el.refreshBtn.querySelector(".btn-label");
@@ -129,10 +133,34 @@
     return { reason, rankData };
   }
 
+  function showCommentArea() {
+    el.commentWrap.classList.add("is-visible");
+  }
+
+  function hideCommentArea() {
+    el.commentWrap.classList.remove("is-visible");
+  }
+
+  function setCopyButtonCopiedState() {
+    if (state.copyButtonResetTimerId) {
+      clearTimeout(state.copyButtonResetTimerId);
+    }
+
+    el.copyBtn.classList.add("is-copied");
+    el.copyBtn.textContent = "Copied!";
+
+    state.copyButtonResetTimerId = setTimeout(() => {
+      el.copyBtn.classList.remove("is-copied");
+      el.copyBtn.textContent = "コメントコピー";
+      state.copyButtonResetTimerId = null;
+    }, COPY_BUTTON_RESET_MS);
+  }
+
   function updateRefreshButton(snapshot) {
     const isCooldown = snapshot.manualCooldownRemainingMs > 0 && !snapshot.isUpdating;
+    const totalCooldownMs = 10000;
     const cooldownProgress = isCooldown
-      ? Math.max(0, Math.min(100, ((10000 - snapshot.manualCooldownRemainingMs) / 10000) * 100))
+      ? Math.max(0, Math.min(100, ((totalCooldownMs - snapshot.manualCooldownRemainingMs) / totalCooldownMs) * 100))
       : 0;
 
     el.refreshBtn.classList.toggle("is-updating", snapshot.isUpdating);
@@ -140,7 +168,7 @@
     el.refreshBtn.style.setProperty("--progress", `${cooldownProgress}%`);
 
     if (snapshot.isUpdating) {
-      el.refreshBtnLabel.textContent = "更新中…";
+      el.refreshBtnLabel.textContent = "Updating...";
     } else if (isCooldown) {
       el.refreshBtnLabel.textContent = "";
     } else {
@@ -158,7 +186,7 @@
 
     if (snapshot.manualCooldownRemainingMs > 0) {
       const sec = Math.ceil(snapshot.manualCooldownRemainingMs / 1000);
-      el.stateLine.textContent = `Manual Cooldown ${sec}s`;
+      el.stateLine.textContent = `Manual Cooldown · ${sec}s`;
       return;
     }
 
@@ -202,9 +230,15 @@
     el.copyBtn.addEventListener("click", async () => {
       try {
         await navigator.clipboard.writeText(el.comment.value);
+        showCommentArea();
+        setCopyButtonCopiedState();
       } catch (error) {
         showError("コメントコピーに失敗しました。");
       }
+    });
+
+    el.commentCloseBtn.addEventListener("click", () => {
+      hideCommentArea();
     });
 
     el.autoEnabled.addEventListener("change", () => {
