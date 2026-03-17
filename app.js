@@ -172,7 +172,7 @@
     if (isManualUpdating) {
       el.refreshBtnLabel.textContent = "Updating...";
     } else if (isCooldown) {
-      el.refreshBtnLabel.textContent = "";
+      el.refreshBtnLabel.textContent = "\u00A0";
     } else {
       el.refreshBtnLabel.textContent = "今すぐ更新";
     }
