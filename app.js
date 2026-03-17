@@ -102,7 +102,7 @@
     }
 
     state.event = event;
-    el.title.textContent = `${event.eventName || "イベント"} | ゆいか氏ランキング`;
+    el.title.textContent = `${event.eventName || "イベント"}`;
     return event;
   }
 
@@ -158,16 +158,18 @@
 
   function updateRefreshButton(snapshot) {
     const isCooldown = snapshot.manualCooldownRemainingMs > 0 && !snapshot.isUpdating;
-    const totalCooldownMs = 10000;
+    const totalCooldownMs = snapshot.manualCooldownTotalMs || 8000;
     const cooldownProgress = isCooldown
       ? Math.max(0, Math.min(100, ((totalCooldownMs - snapshot.manualCooldownRemainingMs) / totalCooldownMs) * 100))
       : 0;
 
-    el.refreshBtn.classList.toggle("is-updating", snapshot.isUpdating);
+    const isManualUpdating = snapshot.isUpdating && snapshot.lastReason === "manual";
+
+    el.refreshBtn.classList.toggle("is-updating", isManualUpdating);
     el.refreshBtn.classList.toggle("is-cooldown", isCooldown);
     el.refreshBtn.style.setProperty("--progress", `${cooldownProgress}%`);
 
-    if (snapshot.isUpdating) {
+    if (isManualUpdating) {
       el.refreshBtnLabel.textContent = "Updating...";
     } else if (isCooldown) {
       el.refreshBtnLabel.textContent = "";
@@ -223,7 +225,7 @@
     el.refreshBtn.addEventListener("click", async () => {
       const result = await state.timeLogic.runRefresh("manual");
       if (result && result.skipped && result.reason === "manual-cooldown") {
-        showError("Manual更新は10秒クールダウン中です。");
+        showError("Manual更新は8秒クールダウン中です。");
       }
     });
 
