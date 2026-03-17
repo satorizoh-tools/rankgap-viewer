@@ -129,12 +129,23 @@
 
     const completedAtText = formatDateTimeJst(Date.now());
     el.comment.value = buildCommentText(event.eventName || "イベント", rankData, completedAtText);
+    resizeCommentArea();
 
     return { reason, rankData };
   }
 
+
+  function resizeCommentArea() {
+    if (!el.comment) return;
+    el.comment.style.height = "auto";
+    const nextHeight = Math.min(el.comment.scrollHeight, 196);
+    el.comment.style.height = `${Math.max(nextHeight, 112)}px`;
+    el.comment.style.overflowY = el.comment.scrollHeight > 196 ? "auto" : "hidden";
+  }
+
   function showCommentArea() {
     el.commentWrap.classList.add("is-visible");
+    resizeCommentArea();
   }
 
   function hideCommentArea() {
