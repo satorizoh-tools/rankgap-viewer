@@ -100,6 +100,7 @@ button {
   padding: 9px 14px;
   font-size: 14px;
   cursor: pointer;
+  transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease, transform 0.18s ease, opacity 0.18s ease;
 }
 
 button:disabled,
@@ -111,14 +112,18 @@ input:disabled {
   position: relative;
   min-width: 132px;
   overflow: hidden;
+  isolation: isolate;
 }
 
 #refreshBtn::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, #d9d9d9 0%, #d9d9d9 var(--progress, 0%), transparent var(--progress, 0%), transparent 100%);
+  background: linear-gradient(90deg, #bfe8ff 0%, #bfe8ff var(--progress, 0%), transparent var(--progress, 0%), transparent 100%);
+  opacity: 0;
   pointer-events: none;
+  transition: opacity 0.18s ease;
+  z-index: 0;
 }
 
 #refreshBtn .btn-label {
@@ -127,11 +132,18 @@ input:disabled {
 }
 
 #refreshBtn.is-updating {
-  background: #f0f0f0;
+  background: #eaf6ff;
+  border-color: #bfe8ff;
+}
+
+#refreshBtn.is-cooldown::before {
+  opacity: 1;
 }
 
 #refreshBtn.is-cooldown {
   color: transparent;
+  border-color: #bfe8ff;
+  background: #ffffff;
 }
 
 #refreshBtn.is-cooldown .btn-label {
@@ -142,27 +154,69 @@ input:disabled {
   white-space: nowrap;
 }
 
+#copyBtn.is-copied {
+  background: #bfe8ff;
+  border-color: #8fd3ff;
+  color: #0f3554;
+  transform: scale(0.98);
+}
+
 .state-line {
   min-height: 18px;
   margin-top: 2px;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
   font-size: 13px;
   color: #666;
-  line-height: 1.4;
+  line-height: 1.25;
 }
 
 .last-update {
   margin-bottom: 10px;
   font-size: 14px;
   color: #333;
-  line-height: 1.5;
+  line-height: 1.45;
   word-break: break-word;
+}
+
+.comment-wrap {
+  display: none;
+  margin-top: 10px;
+}
+
+.comment-wrap.is-visible {
+  display: block;
+}
+
+.comment-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.comment-title {
+  font-size: 13px;
+  color: #666;
+}
+
+.comment-close {
+  border: 0;
+  background: transparent;
+  color: #666;
+  padding: 4px 6px;
+  line-height: 1;
+  font-size: 18px;
+  border-radius: 6px;
+}
+
+.comment-close:hover {
+  background: #f0f0f0;
 }
 
 textarea {
   width: 100%;
   height: 140px;
-  margin-top: 10px;
+  margin-top: 0;
   padding: 10px;
   resize: vertical;
 }
@@ -218,7 +272,7 @@ textarea {
       <span>Auto更新</span>
       <input id="autoIntervalSec" class="auto-number" type="number" min="10" max="600" step="1" value="30" inputmode="numeric">
       <span>秒</span>
-      <span class="auto-range">(10–600)</span>
+      <span class="auto-range">(10〜600)</span>
     </label>
   </div>
 
@@ -227,10 +281,17 @@ textarea {
     <button id="copyBtn" type="button">コメントコピー</button>
   </div>
 
-  <div id="stateLine" class="state-line">Waiting</div>
+  <div id="stateLine" class="state-line"></div>
   <div id="lastUpdateLine" class="last-update">Last Update: --</div>
 
-  <textarea id="comment"></textarea>
+  <div id="commentWrap" class="comment-wrap">
+    <div class="comment-head">
+      <div class="comment-title">コメント内容</div>
+      <button id="commentCloseBtn" class="comment-close" type="button" aria-label="閉じる">×</button>
+    </div>
+    <textarea id="comment" readonly></textarea>
+  </div>
+
   <div id="error" class="error"></div>
 </div>
 
