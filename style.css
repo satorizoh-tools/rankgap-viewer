@@ -1,300 +1,297 @@
-* {
-  box-sizing: border-box;
-}
+(function () {
+  const STORAGE_KEY = "rankgap-viewer-settings";
+  const COPY_BUTTON_RESET_MS = 1000;
 
-html, body {
-  margin: 0;
-  padding: 0;
-}
+  const state = {
+    event: null,
+    autoEnabled: true,
+    autoIntervalSec: 30,
+    timeLogic: null,
+    copyButtonResetTimerId: null
+  };
 
-body {
-  font-family: Arial, sans-serif;
-  background: #f5f5f5;
-  color: #222;
-  padding: 16px;
-}
+  const el = {};
 
-.card {
-  width: min(100%, 380px);
-  margin: 0 auto;
-  background: #ffffff;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-h2 {
-  margin: 0 0 16px;
-  font-size: 24px;
-  line-height: 1.35;
-}
-
-.label {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 4px;
-}
-
-.value {
-  font-size: 22px;
-  font-weight: bold;
-  margin-bottom: 12px;
-  line-height: 1.3;
-  word-break: break-word;
-}
-
-.controls {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.control-group {
-  margin-top: 6px;
-  margin-bottom: 12px;
-}
-
-.auto-row {
-  margin-top: 0;
-  margin-bottom: 0;
-}
-
-.auto-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: nowrap;
-  line-height: 1.2;
-  min-width: 0;
-  font-size: 14px;
-}
-
-.auto-label span,
-.auto-range,
-.auto-number,
-.auto-label input[type="checkbox"] {
-  font-size: 14px;
-  line-height: 1.2;
-}
-
-.auto-label input[type="checkbox"] {
-  margin: 0;
-  inline-size: 14px;
-  block-size: 14px;
-  accent-color: #5caee6;
-  vertical-align: middle;
-  flex: 0 0 auto;
-}
-
-.auto-range {
-  color: #666;
-  white-space: nowrap;
-}
-
-.auto-number {
-  width: 70px;
-  min-width: 70px;
-  padding: 6px 8px;
-  text-align: right;
-  font-size: 14px;
-  line-height: 1.2;
-  height: 32px;
-  border: 1px solid #d0d0d0;
-  border-radius: 8px;
-  background: #fff;
-  color: #222;
-  appearance: textfield;
-  -moz-appearance: textfield;
-}
-
-.auto-number::-webkit-outer-spin-button,
-.auto-number::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.button-row {
-  margin-bottom: 0;
-}
-
-button {
-  border: 1px solid #d0d0d0;
-  background: #fff;
-  color: #222;
-  border-radius: 8px;
-  padding: 9px 14px;
-  font-size: 14px;
-  line-height: 1.2;
-  min-height: 40px;
-  cursor: pointer;
-  transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease, transform 0.18s ease, opacity 0.18s ease;
-}
-
-#refreshBtn,
-#copyBtn {
-  flex: 1 1 0;
-  min-width: 0;
-}
-
-button:disabled,
-input:disabled {
-  cursor: not-allowed;
-}
-
-#refreshBtn {
-  position: relative;
-  min-width: 132px;
-  overflow: hidden;
-  isolation: isolate;
-  background: #fff;
-}
-
-#refreshBtn::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    90deg,
-    rgba(121, 204, 255, 0.95) 0%,
-    rgba(121, 204, 255, 0.95) var(--progress, 0%),
-    transparent var(--progress, 0%),
-    transparent 100%
-  );
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.18s ease;
-  z-index: 0;
-}
-
-#refreshBtn .btn-label {
-  position: relative;
-  z-index: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  min-height: 20px;
-}
-
-#refreshBtn.is-updating {
-  background: #eaf6ff;
-  border-color: #bfe8ff;
-}
-
-#refreshBtn.is-cooldown::before {
-  opacity: 1;
-}
-
-#refreshBtn.is-cooldown {
-  border-color: #8fd3ff;
-  background: #eaf6ff;
-}
-
-#refreshBtn.is-cooldown .btn-label {
-  opacity: 0;
-}
-
-#copyBtn {
-  white-space: nowrap;
-}
-
-#copyBtn.is-copied {
-  background: #bfe8ff;
-  border-color: #8fd3ff;
-  color: #0f3554;
-  transform: scale(0.98);
-}
-
-.status-group {
-  margin-top: 10px;
-}
-
-.state-line {
-  min-height: 18px;
-  margin-top: 0;
-  margin-bottom: 2px;
-  font-size: 13px;
-  color: #666;
-  line-height: 1.25;
-}
-
-.last-update {
-  margin-top: 0;
-  margin-bottom: 8px;
-  font-size: 14px;
-  color: #333;
-  line-height: 1.35;
-  word-break: break-word;
-}
-
-.comment-wrap {
-  display: none;
-  margin-top: 8px;
-  margin-bottom: 0;
-  position: relative;
-}
-
-.comment-wrap.is-visible {
-  display: block;
-}
-
-.comment-close {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  border: 0;
-  background: transparent;
-  color: #666;
-  padding: 4px 6px;
-  line-height: 1;
-  font-size: 18px;
-  border-radius: 6px;
-  z-index: 1;
-  min-height: 0;
-}
-
-.comment-close:hover {
-  background: #f0f0f0;
-}
-
-textarea {
-  width: 100%;
-  height: 140px;
-  margin: 0;
-  display: block;
-  padding: 12px 36px 10px 10px;
-  resize: vertical;
-  border: 1px solid #d0d0d0;
-  border-radius: 8px;
-  font: inherit;
-  color: #222;
-  background: #fff;
-}
-
-.error {
-  color: #b00020;
-  margin-top: 10px;
-  white-space: pre-wrap;
-  line-height: 1.5;
-}
-
-@media (max-width: 430px) {
-  body {
-    padding: 12px;
+  function getEnabledEvent(events) {
+    const enabled = events.find(event => event.isEnabled);
+    return enabled || events[0] || null;
   }
 
-  .card {
-    padding: 16px;
+  function pad2(value) {
+    return String(value).padStart(2, "0");
   }
 
-  .button-row {
-    gap: 8px;
+  function formatDateTimeJst(timestampMs) {
+    const dt = new Date(timestampMs);
+    return [
+      pad2(dt.getFullYear() % 100),
+      pad2(dt.getMonth() + 1),
+      pad2(dt.getDate())
+    ].join("/") + " " + [
+      pad2(dt.getHours()),
+      pad2(dt.getMinutes()),
+      pad2(dt.getSeconds())
+    ].join(":");
   }
 
-  #refreshBtn,
-  #copyBtn {
-    flex: 1 1 calc(50% - 4px);
-    min-width: 0;
+  function formatDurationSec(durationMs) {
+    return `${(durationMs / 1000).toFixed(1)}s`;
   }
-}
+
+  function loadSettings() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+
+      const parsed = JSON.parse(raw);
+      if (typeof parsed.autoEnabled === "boolean") {
+        state.autoEnabled = parsed.autoEnabled;
+      }
+      if (Number.isFinite(parsed.autoIntervalSec)) {
+        state.autoIntervalSec = Math.max(10, Math.min(600, Number(parsed.autoIntervalSec)));
+      }
+    } catch (error) {
+      console.warn("settings load failed", error);
+    }
+  }
+
+  function saveSettings() {
+    const payload = {
+      autoEnabled: state.autoEnabled,
+      autoIntervalSec: state.autoIntervalSec
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  }
+
+  function cacheElements() {
+    el.title = document.getElementById("title");
+    el.rank = document.getElementById("rank");
+    el.points = document.getElementById("points");
+    el.diff15 = document.getElementById("diff15");
+    el.diff30 = document.getElementById("diff30");
+    el.stateLine = document.getElementById("stateLine");
+    el.lastUpdateLine = document.getElementById("lastUpdateLine");
+    el.commentWrap = document.getElementById("commentWrap");
+    el.comment = document.getElementById("comment");
+    el.commentCloseBtn = document.getElementById("commentCloseBtn");
+    el.error = document.getElementById("error");
+    el.refreshBtn = document.getElementById("refreshBtn");
+    el.refreshBtnLabel = el.refreshBtn.querySelector(".btn-label");
+    el.copyBtn = document.getElementById("copyBtn");
+    el.autoEnabled = document.getElementById("autoEnabled");
+    el.autoIntervalSec = document.getElementById("autoIntervalSec");
+  }
+
+  function showError(message) {
+    el.error.textContent = message;
+  }
+
+  function clearError() {
+    el.error.textContent = "";
+  }
+
+  async function ensureEventLoaded() {
+    if (state.event) {
+      return state.event;
+    }
+
+    const events = await window.RankGapApi.fetchEvents();
+    const event = getEnabledEvent(events);
+    if (!event) {
+      throw new Error("enabled event not found");
+    }
+
+    state.event = event;
+    el.title.textContent = `${event.eventName || "イベント"}`;
+    return event;
+  }
+
+  function buildCommentText(eventName, rankData, lastUpdateText) {
+    return `${eventName}
+ゆいか氏 現在 ${rankData.rank}位
+ポイント ${rankData.points.toLocaleString()}pt
+15位まで ${rankData.diff15.toLocaleString()}pt
+30位まで ${rankData.diff30.toLocaleString()}pt
+最終更新 ${lastUpdateText}`;
+  }
+
+  async function refreshRanking(reason) {
+    clearError();
+
+    const event = await ensureEventLoaded();
+    const group = await window.RankGapApi.fetchBattleGroup(event.battleId, event.groupId);
+    const rankData = window.RankGapApi.buildRankViewModel(group);
+
+    el.rank.textContent = `${rankData.rank}位`;
+    el.points.textContent = `${rankData.points.toLocaleString()}pt`;
+    el.diff15.textContent = `${rankData.diff15.toLocaleString()}pt`;
+    el.diff30.textContent = `${rankData.diff30.toLocaleString()}pt`;
+
+    const completedAtText = formatDateTimeJst(Date.now());
+    el.comment.value = buildCommentText(event.eventName || "イベント", rankData, completedAtText);
+    resizeCommentArea();
+
+    return { reason, rankData };
+  }
+
+
+  function resizeCommentArea() {
+    if (!el.comment) return;
+    el.comment.style.height = "auto";
+    const nextHeight = Math.min(el.comment.scrollHeight, 196);
+    el.comment.style.height = `${Math.max(nextHeight, 112)}px`;
+    el.comment.style.overflowY = el.comment.scrollHeight > 196 ? "auto" : "hidden";
+  }
+
+  function showCommentArea() {
+    el.commentWrap.classList.add("is-visible");
+    resizeCommentArea();
+  }
+
+  function hideCommentArea() {
+    el.commentWrap.classList.remove("is-visible");
+  }
+
+  function setCopyButtonCopiedState() {
+    if (state.copyButtonResetTimerId) {
+      clearTimeout(state.copyButtonResetTimerId);
+    }
+
+    el.copyBtn.classList.add("is-copied");
+    el.copyBtn.textContent = "Copied!";
+
+    state.copyButtonResetTimerId = setTimeout(() => {
+      el.copyBtn.classList.remove("is-copied");
+      el.copyBtn.textContent = "コメントコピー";
+      state.copyButtonResetTimerId = null;
+    }, COPY_BUTTON_RESET_MS);
+  }
+
+  function updateRefreshButton(snapshot) {
+    const isCooldown = snapshot.manualCooldownRemainingMs > 0 && !snapshot.isUpdating;
+    const totalCooldownMs = snapshot.manualCooldownTotalMs || 8000;
+    const cooldownProgress = isCooldown
+      ? Math.max(0, Math.min(100, ((totalCooldownMs - snapshot.manualCooldownRemainingMs) / totalCooldownMs) * 100))
+      : 0;
+
+    const isManualUpdating = snapshot.isUpdating && snapshot.lastReason === "manual";
+
+    el.refreshBtn.classList.toggle("is-updating", isManualUpdating);
+    el.refreshBtn.classList.toggle("is-cooldown", isCooldown);
+    el.refreshBtn.style.setProperty("--progress", `${cooldownProgress}%`);
+
+    if (isManualUpdating) {
+      el.refreshBtnLabel.textContent = "Updating...";
+    } else if (isCooldown) {
+      el.refreshBtnLabel.textContent = "\u00A0";
+    } else {
+      el.refreshBtnLabel.textContent = "今すぐ更新";
+    }
+
+    el.refreshBtn.disabled = snapshot.isUpdating || isCooldown;
+  }
+
+  function updateStateLine(snapshot) {
+    if (snapshot.isUpdating) {
+      el.stateLine.textContent = "Updating";
+      return;
+    }
+
+    if (snapshot.manualCooldownRemainingMs > 0) {
+      const sec = Math.ceil(snapshot.manualCooldownRemainingMs / 1000);
+      el.stateLine.textContent = `Manual Cooldown · ${sec}s`;
+      return;
+    }
+
+    el.stateLine.textContent = "Waiting";
+  }
+
+  function updateLastUpdateLine(snapshot) {
+    if (!snapshot.lastCompletedAtMs) {
+      el.lastUpdateLine.textContent = "Last Update: --";
+      return;
+    }
+
+    const timeText = formatDateTimeJst(snapshot.lastCompletedAtMs);
+    const durationText = snapshot.lastDurationMs != null
+      ? ` (${formatDurationSec(snapshot.lastDurationMs)})`
+      : "";
+    const autoText = snapshot.autoEnabled
+      ? `Auto ${snapshot.intervalSec}s`
+      : "Auto OFF";
+
+    el.lastUpdateLine.textContent = `Last Update: ${timeText}${durationText} · ${autoText}`;
+  }
+
+  function updateStatusView(snapshot) {
+    updateStateLine(snapshot);
+    updateLastUpdateLine(snapshot);
+    updateRefreshButton(snapshot);
+
+    el.autoIntervalSec.disabled = snapshot.isUpdating;
+    el.autoEnabled.disabled = snapshot.isUpdating;
+  }
+
+  function bindEvents() {
+    el.refreshBtn.addEventListener("click", async () => {
+      const result = await state.timeLogic.runRefresh("manual");
+      if (result && result.skipped && result.reason === "manual-cooldown") {
+        showError("Manual更新は8秒クールダウン中です。");
+      }
+    });
+
+    el.copyBtn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(el.comment.value);
+        showCommentArea();
+        setCopyButtonCopiedState();
+      } catch (error) {
+        showError("コメントコピーに失敗しました。");
+      }
+    });
+
+    el.commentCloseBtn.addEventListener("click", () => {
+      hideCommentArea();
+    });
+
+    el.autoEnabled.addEventListener("change", () => {
+      state.autoEnabled = el.autoEnabled.checked;
+      saveSettings();
+      state.timeLogic.updateAutoSettingChanged();
+    });
+
+    el.autoIntervalSec.addEventListener("change", () => {
+      const value = Number(el.autoIntervalSec.value || 30);
+      state.autoIntervalSec = Math.max(10, Math.min(600, value));
+      el.autoIntervalSec.value = String(state.autoIntervalSec);
+      saveSettings();
+      state.timeLogic.updateAutoSettingChanged();
+    });
+  }
+
+  async function initialize() {
+    loadSettings();
+    cacheElements();
+
+    el.autoEnabled.checked = state.autoEnabled;
+    el.autoIntervalSec.value = String(state.autoIntervalSec);
+
+    state.timeLogic = new window.RankGapTimeLogic({
+      onAutoRefresh: refreshRanking,
+      onStateChange: updateStatusView,
+      getAutoEnabled: () => state.autoEnabled,
+      getUserIntervalSec: () => state.autoIntervalSec
+    });
+
+    bindEvents();
+
+    try {
+      await state.timeLogic.initialize();
+    } catch (error) {
+      showError(error.message || String(error));
+      updateStatusView(state.timeLogic.getSnapshot());
+    }
+  }
+
+  window.addEventListener("load", initialize);
+})();
