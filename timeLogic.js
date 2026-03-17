@@ -1,6 +1,6 @@
 (function () {
-  const MANUAL_COOLDOWN_MS = 10 * 1000;
-  const TICK_MS = 250;
+  const MANUAL_COOLDOWN_MS = 8 * 1000;
+  const TICK_MS = 50;
 
   class RankGapTimeLogic {
     constructor(options) {
@@ -33,7 +33,8 @@
         lastDurationMs: this.lastDurationMs,
         lastReason: this.lastReason,
         manualCooldownRemainingMs: cooldownRemainingMs,
-        nextAutoScheduled: !!this.autoTimerId
+        nextAutoScheduled: !!this.autoTimerId,
+        manualCooldownTotalMs: MANUAL_COOLDOWN_MS
       };
     }
 
