@@ -1,302 +1,61 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>RankGap Viewer</title>
-<style>
-* {
-  box-sizing: border-box;
-}
+(function () {
+  const EVENTS_API_URL = "https://script.google.com/macros/s/AKfycbzX0gqLJ78tp3tOO3BLG9vzKnJu6QZ-DoIN8Sf7arHpmlyE0LWq4Ro3hC7iaMmGHASM/exec";
+  const WORKER_URL = "https://dark-union-69d8.rankgap-tools.workers.dev/";
+  const TARGET_USER_ID = "2576568";
 
-html, body {
-  margin: 0;
-  padding: 0;
-}
+  async function fetchEvents() {
+    const res = await fetch(EVENTS_API_URL, { cache: "no-store" });
+    if (!res.ok) {
+      throw new Error(`events api error: ${res.status}`);
+    }
 
-body {
-  font-family: Arial, sans-serif;
-  background: #f5f5f5;
-  color: #222;
-  padding: 16px;
-}
+    const data = await res.json();
+    if (!data.events || !Array.isArray(data.events) || data.events.length === 0) {
+      throw new Error("events not found");
+    }
 
-.card {
-  width: min(100%, 380px);
-  margin: 0 auto;
-  background: #ffffff;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-h2 {
-  margin: 0 0 16px;
-  font-size: 24px;
-  line-height: 1.35;
-}
-
-.label {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 4px;
-}
-
-.value {
-  font-size: 22px;
-  font-weight: bold;
-  margin-bottom: 12px;
-  line-height: 1.3;
-  word-break: break-word;
-}
-
-.controls {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.auto-row {
-  margin-top: 6px;
-  margin-bottom: 10px;
-}
-
-.auto-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: nowrap;
-  line-height: 1.2;
-  min-width: 0;
-  font-size: 14px;
-}
-
-.auto-label input[type="checkbox"] {
-  margin: 0;
-}
-
-.auto-range {
-  color: #666;
-  font-size: 14px;
-  white-space: nowrap;
-}
-
-.auto-number {
-  width: 70px;
-  min-width: 70px;
-  padding: 6px 8px;
-  text-align: right;
-  font-size: inherit;
-}
-
-.button-row {
-  margin-bottom: 6px;
-}
-
-button {
-  border: 1px solid #d0d0d0;
-  background: #fff;
-  color: #222;
-  border-radius: 8px;
-  padding: 9px 14px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease, transform 0.18s ease, opacity 0.18s ease;
-}
-
-#refreshBtn,
-#copyBtn {
-  flex: 1 1 0;
-  min-width: 0;
-}
-
-button:disabled,
-input:disabled {
-  cursor: not-allowed;
-}
-
-#refreshBtn {
-  position: relative;
-  min-width: 132px;
-  overflow: hidden;
-  isolation: isolate;
-  background: #fff;
-}
-
-#refreshBtn::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, #79ccff 0%, #79ccff var(--progress, 0%), transparent var(--progress, 0%), transparent 100%);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.18s ease;
-  z-index: 0;
-}
-
-#refreshBtn .btn-label {
-  position: relative;
-  z-index: 1;
-}
-
-#refreshBtn.is-updating {
-  background: #eaf6ff;
-  border-color: #bfe8ff;
-}
-
-#refreshBtn.is-cooldown::before {
-  opacity: 1;
-}
-
-#refreshBtn.is-cooldown {
-  color: transparent;
-  border-color: #8fd3ff;
-  background: #eaf6ff;
-}
-
-#refreshBtn.is-cooldown .btn-label {
-  opacity: 0;
-}
-
-#copyBtn {
-  white-space: nowrap;
-}
-
-#copyBtn.is-copied {
-  background: #bfe8ff;
-  border-color: #8fd3ff;
-  color: #0f3554;
-  transform: scale(0.98);
-}
-
-.state-line {
-  min-height: 18px;
-  margin-top: 6px;
-  margin-bottom: 0;
-  font-size: 13px;
-  color: #666;
-  line-height: 1.2;
-}
-
-.last-update {
-  margin-top: 2px;
-  margin-bottom: 8px;
-  font-size: 14px;
-  color: #333;
-  line-height: 1.35;
-  word-break: break-word;
-}
-
-.comment-wrap {
-  display: none;
-  margin-top: 8px;
-  position: relative;
-}
-
-.comment-wrap.is-visible {
-  display: block;
-}
-
-.comment-close {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  border: 0;
-  background: transparent;
-  color: #666;
-  padding: 4px 6px;
-  line-height: 1;
-  font-size: 18px;
-  border-radius: 6px;
-  z-index: 1;
-}
-
-.comment-close:hover {
-  background: #f0f0f0;
-}
-
-textarea {
-  width: 100%;
-  height: 140px;
-  margin-top: 0;
-  padding: 12px 36px 10px 10px;
-  resize: vertical;
-}
-
-.error {
-  color: #b00020;
-  margin-top: 10px;
-  white-space: pre-wrap;
-  line-height: 1.5;
-}
-
-@media (max-width: 430px) {
-  body {
-    padding: 12px;
+    return data.events;
   }
 
-  .card {
-    padding: 16px;
+  async function fetchBattleGroup(battleId, groupId) {
+    const url = `${WORKER_URL}?battleId=${encodeURIComponent(battleId)}`;
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) {
+      throw new Error(`worker api error: ${res.status}`);
+    }
+
+    const data = await res.json();
+    if (!data.groups || !data.groups[groupId]) {
+      throw new Error("group not found");
+    }
+
+    return data.groups[groupId];
   }
 
-  .button-row {
-    gap: 8px;
+  function buildRankViewModel(list) {
+    const sorted = [...list].sort((a, b) => b.score - a.score);
+    const index = sorted.findIndex(v => String(v.userId) === TARGET_USER_ID);
+
+    if (index === -1) {
+      throw new Error("target user not found");
+    }
+
+    const rank = index + 1;
+    const points = Number(sorted[index].score || 0);
+    const diff15 = sorted[14] ? Math.max(Number(sorted[14].score || 0) - points, 0) : 0;
+    const diff30 = sorted[29] ? Math.max(Number(sorted[29].score || 0) - points, 0) : 0;
+
+    return {
+      rank,
+      points,
+      diff15,
+      diff30
+    };
   }
 
-  #refreshBtn,
-  #copyBtn {
-    flex: 1 1 calc(50% - 4px);
-    min-width: 0;
-  }
-}
-</style>
-</head>
-<body>
-
-<div class="card">
-  <h2 id="title">イベント名</h2>
-
-  <div class="label">順位</div>
-  <div id="rank" class="value">--</div>
-
-  <div class="label">ポイント</div>
-  <div id="points" class="value">--</div>
-
-  <div class="label">15位まで</div>
-  <div id="diff15" class="value">--</div>
-
-  <div class="label">30位まで</div>
-  <div id="diff30" class="value">--</div>
-
-  <div class="controls auto-row">
-    <label class="auto-label" for="autoIntervalSec">
-      <input id="autoEnabled" type="checkbox" checked>
-      <span>Auto更新</span>
-      <input id="autoIntervalSec" class="auto-number" type="number" min="10" max="600" step="1" value="30" inputmode="numeric">
-      <span>秒</span>
-      <span class="auto-range">(10〜600)</span>
-    </label>
-  </div>
-
-  <div class="controls button-row">
-    <button id="refreshBtn" type="button"><span class="btn-label">今すぐ更新</span></button>
-    <button id="copyBtn" type="button">コメントコピー</button>
-  </div>
-
-  <div id="stateLine" class="state-line"></div>
-  <div id="lastUpdateLine" class="last-update">Last Update: --</div>
-
-  <div id="commentWrap" class="comment-wrap">
-    <button id="commentCloseBtn" class="comment-close" type="button" aria-label="閉じる">×</button>
-    <textarea id="comment" readonly></textarea>
-  </div>
-
-  <div id="error" class="error"></div>
-</div>
-
-<script src="./api.js"></script>
-<script src="./timeLogic.js"></script>
-<script src="./app.js"></script>
-</body>
-</html>
+  window.RankGapApi = {
+    fetchEvents,
+    fetchBattleGroup,
+    buildRankViewModel
+  };
+})();
