@@ -10,6 +10,8 @@
       this.getUserIntervalSec = options.getUserIntervalSec;
 
       this.autoTimerId = null;
+      this.autoCountdownIntervalId = null;
+      this.nextAutoDueAtMs = null;
       this.manualCooldownIntervalId = null;
       this.manualCooldownUntil = null;
       this.isUpdating = false;
@@ -24,6 +26,15 @@
       const cooldownRemainingMs = this.manualCooldownUntil
         ? Math.max(this.manualCooldownUntil - Date.now(), 0)
         : 0;
+      const autoRemainingMs = this.nextAutoDueAtMs
+        ? Math.max(this.nextAutoDueAtMs - Date.now(), 0)
+        : 0;
+      const autoRemainingSec = this.nextAutoDueAtMs
+        ? Math.ceil(autoRemainingMs / 1000)
+        : 0;
+      const autoProgressRatio = this.nextAutoDueAtMs && intervalSec > 0
+        ? Math.max(0, Math.min(1, 1 - (autoRemainingMs / (intervalSec * 1000))))
+        : 0;
 
       return {
         autoEnabled,
@@ -34,7 +45,10 @@
         lastReason: this.lastReason,
         manualCooldownRemainingMs: cooldownRemainingMs,
         nextAutoScheduled: !!this.autoTimerId,
-        manualCooldownTotalMs: MANUAL_COOLDOWN_MS
+        manualCooldownTotalMs: MANUAL_COOLDOWN_MS,
+        autoRemainingMs,
+        autoRemainingSec,
+        autoProgressRatio
       };
     }
 
@@ -48,6 +62,11 @@
       if (this.autoTimerId) {
         clearTimeout(this.autoTimerId);
         this.autoTimerId = null;
+      }
+      this.nextAutoDueAtMs = null;
+      if (this.autoCountdownIntervalId) {
+        clearInterval(this.autoCountdownIntervalId);
+        this.autoCountdownIntervalId = null;
       }
     }
 
@@ -85,10 +104,25 @@
       }
 
       const intervalMs = this.getUserIntervalSec() * 1000;
+      this.nextAutoDueAtMs = Date.now() + intervalMs;
       this.autoTimerId = setTimeout(async () => {
         this.autoTimerId = null;
+        this.nextAutoDueAtMs = null;
+        if (this.autoCountdownIntervalId) {
+          clearInterval(this.autoCountdownIntervalId);
+          this.autoCountdownIntervalId = null;
+        }
         await this.runRefresh("auto");
       }, intervalMs);
+
+      this.autoCountdownIntervalId = setInterval(() => {
+        if (!this.nextAutoDueAtMs) {
+          clearInterval(this.autoCountdownIntervalId);
+          this.autoCountdownIntervalId = null;
+          return;
+        }
+        this.notifyState();
+      }, 250);
 
       this.notifyState();
     }
