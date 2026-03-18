@@ -37,6 +37,27 @@
   function formatDurationSec(durationMs) {
     return `${(durationMs / 1000).toFixed(1)}s`;
   }
+  function formatCountdown(seconds) {
+    if (!Number.isFinite(seconds) || seconds <= 0) {
+      return "0s";
+    }
+
+    if (seconds < 60) {
+      return `${seconds}s`;
+    }
+
+    const minutes = Math.floor(seconds / 60);
+    const restSeconds = seconds % 60;
+    return `${minutes}m ${restSeconds}s`;
+  }
+
+  function getCircleProgressSymbol(progressRatio) {
+    if (!Number.isFinite(progressRatio) || progressRatio <= 0) return "○";
+    if (progressRatio < 0.25) return "◔";
+    if (progressRatio < 0.5) return "◑";
+    if (progressRatio < 0.75) return "◕";
+    return "●";
+  }
 
   function loadSettings() {
     try {
@@ -213,14 +234,15 @@
     }
 
     const timeText = formatDateTimeJst(snapshot.lastCompletedAtMs);
-    const durationText = snapshot.lastDurationMs != null
-      ? ` (${formatDurationSec(snapshot.lastDurationMs)})`
-      : "";
-    const autoText = snapshot.autoEnabled
-      ? `Auto ${snapshot.intervalSec}s`
-      : "Auto OFF";
+    let suffix = "";
 
-    el.lastUpdateLine.textContent = `Last Update: ${timeText}${durationText} · ${autoText}`;
+    if (snapshot.autoEnabled && !snapshot.isUpdating && snapshot.autoRemainingSec > 0) {
+      const countdownText = formatCountdown(snapshot.autoRemainingSec);
+      const circle = getCircleProgressSymbol(snapshot.autoProgressRatio);
+      suffix = ` ・ Auto ${countdownText} ${circle}`;
+    }
+
+    el.lastUpdateLine.textContent = `Last Update: ${timeText}${suffix}`;
   }
 
   function updateStatusView(snapshot) {
