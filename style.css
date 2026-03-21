@@ -308,6 +308,7 @@ textarea {
   margin-top:4px;
   position:relative;
   overflow:hidden;
+  display:none;
 }
 
 .progress-base{
