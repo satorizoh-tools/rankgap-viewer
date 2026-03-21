@@ -334,15 +334,12 @@ function updateProgressLoop(){
     return;
   }
 
-  // 表示条件
-  if(!snapshot.autoEnabled || snapshot.isUpdating){
+  if (!state.autoEnabled || snapshot.isUpdating || snapshot.autoRemainingSec <= 0) {
     wrap.style.display = 'none';
     fill.style.width = '0%';
-  }else{
+  } else {
     wrap.style.display = 'block';
-
-    // ★ ここが今回の修正の本体
-    const ratio = snapshot.autoProgressRatio || 0;
+    const ratio = snapshot.autoProgressRatio ?? 0;
     fill.style.width = (ratio * 100) + '%';
   }
 
