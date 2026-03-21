@@ -238,11 +238,23 @@
 
     if (snapshot.autoEnabled && !snapshot.isUpdating && snapshot.autoRemainingSec > 0) {
       const countdownText = formatCountdown(snapshot.autoRemainingSec);
-      const circle = getCircleProgressSymbol(snapshot.autoProgressRatio);
-      suffix = ` ・ Auto ${countdownText} ${circle}`;
+      suffix = ` ・ Auto ${countdownText}`;
     }
 
     el.lastUpdateLine.textContent = `Last Update: ${timeText}${suffix}`;
+
+    const wrap=document.getElementById('progressBarWrap');
+    const bar=document.getElementById('progressBar');
+
+    if(snapshot.autoEnabled && !snapshot.isUpdating && snapshot.autoRemainingSec>0){
+      wrap.style.display='block';
+      const ratio = snapshot.autoProgressRatio || 0;
+      bar.style.width = (ratio*100)+'%';
+    }else{
+      wrap.style.display='none';
+      bar.style.width='0%';
+    }
+
   }
 
   function updateStatusView(snapshot) {
@@ -317,27 +329,3 @@
 
   window.addEventListener("load", initialize);
 })();
-
-
-let progressStart = Date.now();
-let progressDuration = 10000;
-
-function updateProgressBar() {
-  const bar = document.getElementById('progress-bar');
-  const flow = document.getElementById('progress-flow');
-  if (!bar || !flow) return;
-
-  const now = Date.now();
-  const elapsed = now - progressStart;
-  const ratio = Math.min(elapsed / progressDuration, 1);
-
-  bar.style.width = (ratio * 100) + "%";
-
-  // flow animation
-  const flowPos = (elapsed % 2000) / 2000;
-  flow.style.left = (flowPos * 100 - 30) + "%";
-
-  requestAnimationFrame(updateProgressBar);
-}
-
-requestAnimationFrame(updateProgressBar);
