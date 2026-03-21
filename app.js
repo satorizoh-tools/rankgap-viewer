@@ -238,23 +238,11 @@
 
     if (snapshot.autoEnabled && !snapshot.isUpdating && snapshot.autoRemainingSec > 0) {
       const countdownText = formatCountdown(snapshot.autoRemainingSec);
-      suffix = ` ・ Auto ${countdownText}`;
+      
+      suffix = ` ・ Auto ${countdownText} `;
     }
 
     el.lastUpdateLine.textContent = `Last Update: ${timeText}${suffix}`;
-
-    const wrap=document.getElementById('progressBarWrap');
-    const bar=document.getElementById('progressBar');
-
-    if(snapshot.autoEnabled && !snapshot.isUpdating && snapshot.autoRemainingSec>0){
-      wrap.style.display='block';
-      const ratio = snapshot.autoProgressRatio || 0;
-      bar.style.width = (ratio*100)+'%';
-    }else{
-      wrap.style.display='none';
-      bar.style.width='0%';
-    }
-
   }
 
   function updateStatusView(snapshot) {
@@ -329,3 +317,30 @@
 
   window.addEventListener("load", initialize);
 })();
+
+
+function updateProgressLoop(){
+  if(!state.timeLogic){
+    requestAnimationFrame(updateProgressLoop);
+    return;
+  }
+
+  const snapshot = state.timeLogic.getSnapshot();
+  const wrap = document.getElementById('progressWrap');
+  const fill = document.getElementById('progressFill');
+
+  if(!snapshot.autoEnabled || snapshot.isUpdating || snapshot.autoRemainingMs <= 0){
+    if(wrap) wrap.style.display = 'none';
+    if(fill) fill.style.width = '0%';
+  }else{
+    if(wrap) wrap.style.display = 'block';
+    const total = snapshot.autoIntervalMs || (state.autoIntervalSec * 1000);
+    const remaining = snapshot.autoRemainingMs;
+    const ratio = Math.max(0, Math.min(1, 1 - (remaining / total)));
+    if(fill) fill.style.width = (ratio * 100) + '%';
+  }
+
+  requestAnimationFrame(updateProgressLoop);
+}
+
+requestAnimationFrame(updateProgressLoop);
