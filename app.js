@@ -329,15 +329,21 @@ function updateProgressLoop(){
   const wrap = document.getElementById('progressWrap');
   const fill = document.getElementById('progressFill');
 
-  if(!snapshot.autoEnabled || snapshot.isUpdating || snapshot.autoRemainingMs <= 0){
-    if(wrap) wrap.style.display = 'none';
-    if(fill) fill.style.width = '0%';
+  if(!wrap || !fill){
+    requestAnimationFrame(updateProgressLoop);
+    return;
+  }
+
+  // 表示条件
+  if(!snapshot.autoEnabled || snapshot.isUpdating){
+    wrap.style.display = 'none';
+    fill.style.width = '0%';
   }else{
-    if(wrap) wrap.style.display = 'block';
-    const total = snapshot.autoIntervalMs || (state.autoIntervalSec * 1000);
-    const remaining = snapshot.autoRemainingMs;
-    const ratio = Math.max(0, Math.min(1, 1 - (remaining / total)));
-    if(fill) fill.style.width = (ratio * 100) + '%';
+    wrap.style.display = 'block';
+
+    // ★ ここが今回の修正の本体
+    const ratio = snapshot.autoProgressRatio || 0;
+    fill.style.width = (ratio * 100) + '%';
   }
 
   requestAnimationFrame(updateProgressLoop);
