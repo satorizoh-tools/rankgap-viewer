@@ -238,7 +238,6 @@
 
     if (snapshot.autoEnabled && !snapshot.isUpdating && snapshot.autoRemainingSec > 0) {
       const countdownText = formatCountdown(snapshot.autoRemainingSec);
-      
       suffix = ` ・ Auto ${countdownText} `;
     }
 
@@ -316,34 +315,30 @@
   }
 
   window.addEventListener("load", initialize);
-})();
 
-
-function updateProgressLoop(){
-  if(!state.timeLogic){
+  function updateProgressLoop(){
+    if(!state.timeLogic){
+      requestAnimationFrame(updateProgressLoop);
+      return;
+    }
+    const snapshot = state.timeLogic.getSnapshot();
+    const wrap = document.getElementById('progressWrap');
+    const fill = document.getElementById('progressFill');
+    if(!wrap || !fill){
+      requestAnimationFrame(updateProgressLoop);
+      return;
+    }
+    if (!state.autoEnabled || snapshot.isUpdating || snapshot.autoRemainingSec <= 0) {
+      wrap.style.display = 'none';
+      fill.style.width = '0%';
+    } else {
+      wrap.style.display = 'block';
+      const ratio = snapshot.autoProgressRatio ?? 0;
+      fill.style.width = (ratio * 100) + '%';
+    }
     requestAnimationFrame(updateProgressLoop);
-    return;
-  }
-
-  const snapshot = state.timeLogic.getSnapshot();
-  const wrap = document.getElementById('progressWrap');
-  const fill = document.getElementById('progressFill');
-
-  if(!wrap || !fill){
-    requestAnimationFrame(updateProgressLoop);
-    return;
-  }
-
-  if (!state.autoEnabled || snapshot.isUpdating || snapshot.autoRemainingSec <= 0) {
-    wrap.style.display = 'none';
-    fill.style.width = '0%';
-  } else {
-    wrap.style.display = 'block';
-    const ratio = snapshot.autoProgressRatio ?? 0;
-    fill.style.width = (ratio * 100) + '%';
   }
 
   requestAnimationFrame(updateProgressLoop);
-}
 
-requestAnimationFrame(updateProgressLoop);
+})();
