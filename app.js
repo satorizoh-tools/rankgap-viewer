@@ -248,9 +248,8 @@
   function updateStatusView(snapshot) {
     updateStateLine(snapshot);
     updateLastUpdateLine(snapshot);
-    if(state.updateStartTime){
-      state.lastDurationMs = performance.now() - state.updateStartTime;
-    }
+    state.lastDurationMs = snapshot.lastDurationMs ?? null;
+    
     updateRefreshTime(snapshot);
     updateRefreshButton(snapshot);
 
