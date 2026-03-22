@@ -341,4 +341,21 @@
 
   requestAnimationFrame(updateProgressLoop);
 
+
+
+  function updateRefreshTime(snapshot){
+    const el = document.getElementById('refreshTime');
+    if(!el) return;
+
+    if(!snapshot.lastDurationMs){
+      el.style.display = 'none';
+      return;
+    }
+
+    const sec = (snapshot.lastDurationMs / 1000).toFixed(1);
+    el.style.display = 'block';
+    el.textContent = `Refresh Time ・ ${sec}s`;
+  }
+
+
 })();
