@@ -334,3 +334,11 @@ textarea {
   0%{ left:-30%; }
   100%{ left:100%; }
 }
+
+
+.refresh-time{
+  font-size:12px;
+  color:#9aa0a6;
+  margin-top:6px;
+  text-align:left;
+}
