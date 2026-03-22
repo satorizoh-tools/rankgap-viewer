@@ -342,20 +342,24 @@
   requestAnimationFrame(updateProgressLoop);
 
 
-
   function updateRefreshTime(snapshot){
     const el = document.getElementById('refreshTime');
     if(!el) return;
 
-    if(!snapshot.lastDurationMs){
+    const durationMs =
+      snapshot.lastDurationMs ??
+      snapshot.lastDuration ??
+      state.lastDurationMs ??
+      null;
+
+    if(durationMs == null){
       el.style.display = 'none';
       return;
     }
 
-    const sec = (snapshot.lastDurationMs / 1000).toFixed(1);
+    const sec = (durationMs / 1000).toFixed(1);
     el.style.display = 'block';
     el.textContent = `Refresh Time ・ ${sec}s`;
   }
-
 
 })();
