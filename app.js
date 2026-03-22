@@ -3,6 +3,7 @@
   const COPY_BUTTON_RESET_MS = 1000;
 
   const state = {
+    lastDurationMs: null,
     event: null,
     autoEnabled: true,
     autoIntervalSec: 30,
@@ -247,6 +248,9 @@
   function updateStatusView(snapshot) {
     updateStateLine(snapshot);
     updateLastUpdateLine(snapshot);
+    if(state.updateStartTime){
+      state.lastDurationMs = performance.now() - state.updateStartTime;
+    }
     updateRefreshTime(snapshot);
     updateRefreshButton(snapshot);
 
@@ -347,17 +351,13 @@ function updateRefreshTime(snapshot){
   const el = document.getElementById('refreshTime');
   if(!el) return;
 
-  const durationMs =
-    snapshot.lastDurationMs ??
-    (snapshot.lastDurationSec ? snapshot.lastDurationSec * 1000 : null);
-
-  if(durationMs == null){
+  if(!state.autoEnabled || state.lastDurationMs == null){
     el.style.display='none';
     return;
   }
 
   el.style.display='block';
-  const sec=(durationMs/1000).toFixed(1);
+  const sec=(state.lastDurationMs/1000).toFixed(1);
   el.textContent=`Refresh Time ・ ${sec}s`;
 }
 
