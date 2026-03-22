@@ -247,6 +247,7 @@
   function updateStatusView(snapshot) {
     updateStateLine(snapshot);
     updateLastUpdateLine(snapshot);
+    updateRefreshTime(snapshot);
     updateRefreshButton(snapshot);
 
     el.autoIntervalSec.disabled = snapshot.isUpdating;
@@ -342,17 +343,21 @@
   requestAnimationFrame(updateProgressLoop);
 
 
-function updateRefreshTime(){
-  const el=document.getElementById('refreshTime');
+function updateRefreshTime(snapshot){
+  const el = document.getElementById('refreshTime');
   if(!el) return;
 
-  if(state.lastDurationMs==null){
+  const durationMs =
+    snapshot.lastDurationMs ??
+    (snapshot.lastDurationSec ? snapshot.lastDurationSec * 1000 : null);
+
+  if(durationMs == null){
     el.style.display='none';
     return;
   }
 
   el.style.display='block';
-  const sec=(state.lastDurationMs/1000).toFixed(1);
+  const sec=(durationMs/1000).toFixed(1);
   el.textContent=`Refresh Time ・ ${sec}s`;
 }
 
