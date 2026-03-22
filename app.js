@@ -3,7 +3,6 @@
   const COPY_BUTTON_RESET_MS = 1000;
 
   const state = {
-    lastDurationMs: null,
     event: null,
     autoEnabled: true,
     autoIntervalSec: 30,
@@ -343,34 +342,18 @@
   requestAnimationFrame(updateProgressLoop);
 
 
-  function updateRefreshTime(){
-    const el = document.getElementById('refreshTime');
-    if(!el) return;
+function updateRefreshTime(){
+  const el=document.getElementById('refreshTime');
+  if(!el) return;
 
-    if(state.lastDurationMs == null){
-      el.style.display = 'none';
-      return;
-    }
-
-    const sec = (state.lastDurationMs / 1000).toFixed(1);
-    el.style.display = 'block';
-    el.textContent = `Refresh Time ・ ${sec}s`;
+  if(state.lastDurationMs==null){
+    el.style.display='none';
+    return;
   }
 
-
-  (function(){
-    const _fetch = window.fetch;
-    window.fetch = async function(...args){
-      state.updateStartTime = performance.now();
-      const res = await _fetch.apply(this, args);
-      setTimeout(()=>{
-        if(state.updateStartTime){
-          state.lastDurationMs = performance.now() - state.updateStartTime;
-          updateRefreshTime();
-        }
-      }, 0);
-      return res;
-    };
-  })();
+  el.style.display='block';
+  const sec=(state.lastDurationMs/1000).toFixed(1);
+  el.textContent=`Refresh Time ・ ${sec}s`;
+}
 
 })();
