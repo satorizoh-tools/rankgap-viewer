@@ -98,10 +98,7 @@
     scheduleNextAutoFromCompletion() {
       this.clearAutoTimer();
 
-      if (!this.getAutoEnabled()) {
-        this.notifyState();
-        return;
-      }
+      
 
       const intervalMs = this.getUserIntervalSec() * 1000;
       this.nextAutoDueAtMs = Date.now() + intervalMs;
