@@ -360,4 +360,21 @@ function updateRefreshTime(snapshot){
   el.textContent=`Refresh Time ・ ${sec}s`;
 }
 
+
+  function handleResumeAuto() {
+    if (!state.timeLogic) return;
+    if (!state.autoEnabled) return;
+    state.timeLogic.scheduleNextAutoFromCompletion();
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      handleResumeAuto();
+    }
+  });
+
+  window.addEventListener("focus", () => {
+    handleResumeAuto();
+  });
+
 })();
