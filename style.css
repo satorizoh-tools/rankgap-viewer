@@ -178,7 +178,7 @@ input:disabled {
 }
 
 #refreshBtn.is-updating {
-  background: #eaf6ff;
+  background: #bfe8ff;
   border-color: #bfe8ff;
 }
 
@@ -188,7 +188,7 @@ input:disabled {
 
 #refreshBtn.is-cooldown {
   border-color: #8fd3ff;
-  background: #eaf6ff;
+  background: #bfe8ff;
 }
 
 #refreshBtn.is-cooldown .btn-label {
@@ -319,7 +319,7 @@ textarea {
 .progress-fill{
   height:100%;
   width:0%;
-  background:#7ecbff;
+  background:#a8dcff;
   position:absolute;
   overflow:hidden;
 }
