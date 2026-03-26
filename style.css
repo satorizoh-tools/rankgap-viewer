@@ -167,8 +167,8 @@ input:disabled {
   inset: 0;
   background: linear-gradient(
     90deg,
-    rgba(121, 204, 255, 0.95) 0%,
-    rgba(121, 204, 255, 0.95) var(--progress, 0%),
+    rgba(191, 232, 255, 0.95) 0%,
+    rgba(191, 232, 255, 0.95) var(--progress, 0%),
     transparent var(--progress, 0%),
     transparent 100%
   );
