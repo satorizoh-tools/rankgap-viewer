@@ -1,12 +1,12 @@
 :root{
   /* うっすら水色（② Updating / ④ Autoベース） */
-  --color-lightest-blue: var(--color-lightest-blue);
+  --color-lightest-blue: #eaf6ff;
 
   /* 薄い水色（① コピー / ③ Manual進捗） */
-  --color-light-blue: var(--color-light-blue);
+  --color-light-blue: #bfe8ff;
 
   /* 水色（⑤ Auto進捗） */
-  --color-blue: var(--color-blue);
+  --color-blue: #a8dcff;
 }
 
 * {
